@@ -1,0 +1,19 @@
+central-config-service
+
+# windows
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+#
+vendor/
+
+.vscode/
+.idea/
+*.swp
+
+# system files
+.DS_Store
+Thumbs.db
