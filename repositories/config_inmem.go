@@ -20,6 +20,14 @@ func NewConfigInMemRepository() model.ConfigRepository {
 
 func (c *ConfigInMemRepository) Add(config model.Config) error {
 	key := fmt.Sprintf("%s/%s", config.Name, config.Version)
+
+	// fmt.Printf("Pokušavam da sačuvam podatak sa ključem: '%s'\n", key)
+
+	if _, ok := c.configs[key]; ok {
+
+		return errors.New("konfiguracija vec postoji") //imutabilnost
+	}
+
 	c.configs[key] = config
 	return nil
 }
@@ -31,4 +39,24 @@ func (c *ConfigInMemRepository) Get(name string, version string) (model.Config, 
 		return model.Config{}, errors.New("konfiguracija nije pronađena")
 	}
 	return config, nil
+}
+
+func (c *ConfigInMemRepository) Delete(name string, version string) error {
+
+	key := fmt.Sprintf("%s/%s", name, version)
+
+	if _, ok := c.configs[key]; !ok {
+
+		return errors.New("konfiguracija ne postoji")
+	}
+	delete(c.configs, key)
+	return nil
+}
+
+func (c *ConfigInMemRepository) GetAll() ([]model.Config, error) {
+	allConfigs := []model.Config{}
+	for _, config := range c.configs {
+		allConfigs = append(allConfigs, config)
+	}
+	return allConfigs, nil
 }

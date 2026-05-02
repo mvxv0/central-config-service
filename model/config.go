@@ -20,4 +20,6 @@ type ConfigGroup struct {
 type ConfigRepository interface {
 	Add(config Config) error
 	Get(name string, version string) (Config, error)
+	Delete(name string, version string) error
+	GetAll() ([]Config, error)
 }

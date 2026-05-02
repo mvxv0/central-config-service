@@ -16,7 +16,13 @@ func main() {
 	handler := handlers.NewConfigHandler(service)
 
 	router := mux.NewRouter()
+
+	router.HandleFunc("/configs", handler.Create).Methods("POST")
+	router.HandleFunc("/configs/{name}/{version}", handler.Delete).Methods("DELETE")
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
+
+	// U main funkciji dodaj:
+	router.HandleFunc("/configs", handler.GetAll).Methods("GET")
 
 	fmt.Println("server uspesno pokrenut")
 

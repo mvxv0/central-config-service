@@ -6,8 +6,8 @@ type ConfigService struct {
 	repo model.ConfigRepository
 }
 
-func NewConfigService(repo model.ConfigRepository) *ConfigService {
-	return &ConfigService{repo: repo}
+func NewConfigService(r model.ConfigRepository) *ConfigService {
+	return &ConfigService{repo: r}
 }
 
 func (s *ConfigService) Add(c model.Config) error {
@@ -16,4 +16,13 @@ func (s *ConfigService) Add(c model.Config) error {
 
 func (s *ConfigService) Get(name string, version string) (model.Config, error) {
 	return s.repo.Get(name, version)
+}
+
+func (s *ConfigService) Delete(name string, version string) error {
+
+	return s.repo.Delete(name, version)
+}
+
+func (s *ConfigService) GetAll() ([]model.Config, error) {
+	return s.repo.GetAll()
 }
