@@ -1,7 +1,5 @@
 package repositories
 
-//privremeno za v0.1
-
 import (
 	"central-config-service/model"
 	"errors"
