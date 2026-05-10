@@ -1,7 +1,5 @@
 package repositories
 
-//privremeno za v0.1
-
 import (
 	"central-config-service/model"
 	"errors"
@@ -20,8 +18,6 @@ func NewConfigInMemRepository() model.ConfigRepository {
 
 func (c *ConfigInMemRepository) Add(config model.Config) error {
 	key := fmt.Sprintf("%s/%s", config.Name, config.Version)
-
-	// fmt.Printf("Pokušavam da sačuvam podatak sa ključem: '%s'\n", key)
 
 	if _, ok := c.configs[key]; ok {
 
