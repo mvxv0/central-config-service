@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -23,6 +24,8 @@ func (h *ConfigHandler) Add(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	config.ID = uuid.New().String()
 
 	if err := h.service.Add(config); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -59,6 +62,8 @@ func (h *ConfigHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nevalidan json format", http.StatusBadRequest)
 		return
 	}
+
+	cfg.ID = uuid.New().String()
 
 	err = h.service.Add(cfg)
 	if err != nil {

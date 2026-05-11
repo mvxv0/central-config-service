@@ -34,6 +34,14 @@ func (r *ConfigGroupInMemRepository) GetGroup(name string, version string) (mode
 	return group, nil
 }
 
+func (r *ConfigGroupInMemRepository) GetAllGroups() ([]model.ConfigGroup, error) {
+	var allGroups []model.ConfigGroup
+	for _, group := range r.groups {
+		allGroups = append(allGroups, group)
+	}
+	return allGroups, nil
+}
+
 func (r *ConfigGroupInMemRepository) DeleteGroup(name string, version string) error {
 	key := fmt.Sprintf("%s/%s", name, version)
 	if _, ok := r.groups[key]; !ok {
@@ -58,6 +66,33 @@ func (r *ConfigGroupInMemRepository) AddConfigToGroup(name string, version strin
 
 	group.Configs = append(group.Configs, dto)
 
+	r.groups[key] = group
+	return nil
+}
+
+func (r *ConfigGroupInMemRepository) DeleteConfigFromGroup(name string, version string, config model.Config) error {
+	key := fmt.Sprintf("%s/%s", name, version)
+
+	group, ok := r.groups[key]
+	if !ok {
+		return errors.New("grupa nije pronadjena")
+	}
+
+	found := false
+	var newConfigs []model.ConfigDTO
+	for _, c := range group.Configs {
+		if c.Name == config.Name {
+			found = true
+			continue
+		}
+		newConfigs = append(newConfigs, c)
+	}
+
+	if !found {
+		return errors.New("config nije pronadjen u grupi")
+	}
+
+	group.Configs = newConfigs
 	r.groups[key] = group
 	return nil
 }

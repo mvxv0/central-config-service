@@ -19,6 +19,10 @@ func (s *ConfigGroupService) GetGroup(name string, version string) (model.Config
 	return s.groupRepo.GetGroup(name, version)
 }
 
+func (s *ConfigGroupService) GetAllGroups() ([]model.ConfigGroup, error) {
+	return s.groupRepo.GetAllGroups()
+}
+
 func (s *ConfigGroupService) DeleteGroup(name string, version string) error {
 	return s.groupRepo.DeleteGroup(name, version)
 }
@@ -45,4 +49,8 @@ func (s *ConfigGroupService) AddExistingConfigToGroup(groupName string, groupVer
 	}
 
 	return nil
+}
+
+func (s *ConfigGroupService) DeleteConfigFromGroup(groupName string, groupVersion string, config model.Config) error {
+	return s.groupRepo.DeleteConfigFromGroup(groupName, groupVersion, config)
 }

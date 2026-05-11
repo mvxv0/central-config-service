@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -23,6 +24,9 @@ func (h *ConfigGroupHandler) AddGroup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	group.ID = uuid.New().String()
+
 	if err := h.service.AddGroup(group); err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
@@ -42,6 +46,15 @@ func (h *ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(group)
+}
+
+func (h *ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request) {
+	groups, err := h.service.GetAllGroups()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(groups)
 }
 
 func (h *ConfigGroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +79,8 @@ func (h *ConfigGroupHandler) AddConfigToGroup(w http.ResponseWriter, r *http.Req
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	config.ID = uuid.New().String()
 
 	if err := h.service.AddConfigToGroup(name, version, config); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -99,4 +114,23 @@ func (h *ConfigGroupHandler) AddExistingConfigToGroup(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "Uspesno povezan postojeci config sa grupom!"}`))
+}
+
+func (h *ConfigGroupHandler) DeleteConfigFromGroup(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	groupName := vars["name"]
+	groupVersion := vars["version"]
+	configName := vars["configName"]
+
+	config := model.Config{
+		Name: configName,
+	}
+
+	if err := h.service.DeleteConfigFromGroup(groupName, groupVersion, config); err != nil {
+		http.Error(w, "config ne postoji u grupi", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"message": "Konfiguracija je uspesno obrisana iz grupe"}`))
 }
