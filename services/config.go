@@ -1,6 +1,9 @@
 package services
 
-import "central-config-service/model"
+import (
+	"central-config-service/model"
+	"errors"
+)
 
 type ConfigService struct {
 	repo model.ConfigRepository
@@ -11,6 +14,10 @@ func NewConfigService(r model.ConfigRepository) *ConfigService {
 }
 
 func (s *ConfigService) Add(c model.Config) error {
+	_, err := s.repo.Get(c.Name, c.Version)
+	if err == nil {
+		return errors.New("konfiguracija vec postoji")
+	}
 	return s.repo.Add(c)
 }
 

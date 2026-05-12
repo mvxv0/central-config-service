@@ -18,12 +18,6 @@ func NewConfigInMemRepository() model.ConfigRepository {
 
 func (c *ConfigInMemRepository) Add(config model.Config) error {
 	key := fmt.Sprintf("%s/%s", config.Name, config.Version)
-
-	if _, ok := c.configs[key]; ok {
-
-		return errors.New("konfiguracija vec postoji") //imutabilnost
-	}
-
 	c.configs[key] = config
 	return nil
 }

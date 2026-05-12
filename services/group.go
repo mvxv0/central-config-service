@@ -1,6 +1,11 @@
 package services
 
-import "central-config-service/model"
+import (
+	"central-config-service/model"
+	"errors"
+
+	"github.com/google/uuid"
+)
 
 type ConfigGroupService struct {
 	groupRepo  model.ConfigGroupRepository
@@ -12,7 +17,27 @@ func NewConfigGroupService(gr model.ConfigGroupRepository, cr model.ConfigReposi
 }
 
 func (s *ConfigGroupService) AddGroup(group model.ConfigGroup) error {
-	return s.groupRepo.AddGroup(group)
+	_, err := s.groupRepo.GetGroup(group.Name, group.Version)
+	if err == nil {
+		return errors.New("grupa sa tim imenom i verzijom vec postoji")
+	}
+
+	err = s.groupRepo.AddGroup(group)
+	if err != nil {
+		return err
+	}
+
+	for _, cfgDTO := range group.Configs {
+		cfg := model.Config{
+			ID:      uuid.New().String(),
+			Name:    cfgDTO.Name,
+			Version: group.Version,
+			Params:  cfgDTO.Params,
+		}
+		_ = s.configRepo.Add(cfg)
+	}
+
+	return nil
 }
 
 func (s *ConfigGroupService) GetGroup(name string, version string) (model.ConfigGroup, error) {
@@ -28,7 +53,18 @@ func (s *ConfigGroupService) DeleteGroup(name string, version string) error {
 }
 
 func (s *ConfigGroupService) AddConfigToGroup(groupName string, groupVersion string, config model.Config) error {
-	err := s.groupRepo.AddConfigToGroup(groupName, groupVersion, config)
+	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
+	if err != nil {
+		return err
+	}
+
+	dto := model.ConfigDTO{
+		Name:   config.Name,
+		Params: config.Params,
+	}
+	group.Configs = append(group.Configs, dto)
+
+	err = s.groupRepo.UpdateGroup(group)
 	if err != nil {
 		return err
 	}
@@ -43,14 +79,40 @@ func (s *ConfigGroupService) AddExistingConfigToGroup(groupName string, groupVer
 		return err
 	}
 
-	err = s.groupRepo.AddConfigToGroup(groupName, groupVersion, existingConfig)
+	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	dto := model.ConfigDTO{
+		Name:   existingConfig.Name,
+		Params: existingConfig.Params,
+	}
+	group.Configs = append(group.Configs, dto)
+
+	return s.groupRepo.UpdateGroup(group)
 }
 
 func (s *ConfigGroupService) DeleteConfigFromGroup(groupName string, groupVersion string, config model.Config) error {
-	return s.groupRepo.DeleteConfigFromGroup(groupName, groupVersion, config)
+	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
+	if err != nil {
+		return err
+	}
+
+	found := false
+	var newConfigs []model.ConfigDTO
+	for _, c := range group.Configs {
+		if c.Name == config.Name {
+			found = true
+			continue
+		}
+		newConfigs = append(newConfigs, c)
+	}
+
+	if !found {
+		return errors.New("config nije pronadjen u grupi")
+	}
+
+	group.Configs = newConfigs
+	return s.groupRepo.UpdateGroup(group)
 }
