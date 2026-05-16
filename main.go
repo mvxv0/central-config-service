@@ -39,6 +39,8 @@ func main() {
 	router.HandleFunc("/groups/{name}/{version}/configs/link", groupHandler.AddExistingConfigToGroup).Methods("POST")
 	router.HandleFunc("/groups/{name}/{version}/configs/{configName}", groupHandler.DeleteConfigFromGroup).Methods("DELETE")
 
+	router.HandleFunc("/groups/{name}/{version}/configs", groupHandler.GetConfigsByLabels).Methods("GET")
+	router.HandleFunc("/groups/{name}/{version}/configs", groupHandler.DeleteConfigsByLabels).Methods("DELETE")
 	//graceful sd
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

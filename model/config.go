@@ -5,10 +5,12 @@ type Config struct {
 	Name    string            `json:"name"`
 	Version string            `json:"version"`
 	Params  map[string]string `json:"params"`
+	// Labels  map[string]string `json:"labels"`
 }
 type ConfigDTO struct {
 	Name   string            `json:"name"`
 	Params map[string]string `json:"params"`
+	Labels map[string]string `json:"labels"`
 }
 
 type ConfigGroup struct {
@@ -16,7 +18,12 @@ type ConfigGroup struct {
 	Name    string      `json:"name"`
 	Version string      `json:"version"`
 	Configs []ConfigDTO `json:"configs"`
-	// Labels  map[string]string `json:"labels"`
+}
+
+type LabelsConfigDto struct {
+	Name    string            `json:"name"`
+	Version string            `json:"version"`
+	Labels  map[string]string `json:"labels"`
 }
 
 type ConfigRepository interface {

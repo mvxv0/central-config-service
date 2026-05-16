@@ -75,20 +75,19 @@ func (h *ConfigGroupHandler) AddConfigToGroup(w http.ResponseWriter, r *http.Req
 	name := vars["name"]
 	version := vars["version"]
 
-	var config model.Config
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+	var configDTO model.ConfigDTO
+	if err := json.NewDecoder(r.Body).Decode(&configDTO); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	config.ID = uuid.New().String()
-
-	if err := h.service.AddConfigToGroup(name, version, config); err != nil {
+	if err := h.service.AddConfigToGroup(name, version, configDTO); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(config)
+	json.NewEncoder(w).Encode(configDTO)
 }
 
 func (h *ConfigGroupHandler) AddExistingConfigToGroup(w http.ResponseWriter, r *http.Request) {
@@ -96,25 +95,22 @@ func (h *ConfigGroupHandler) AddExistingConfigToGroup(w http.ResponseWriter, r *
 	groupName := vars["name"]
 	groupVersion := vars["version"]
 
-	var req struct {
-		Name    string `json:"name"`
-		Version string `json:"version"`
-	}
-
+	var req model.LabelsConfigDto
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Nevalidan JSON u body-ju", http.StatusBadRequest)
 		return
 	}
 
-	err = h.service.AddExistingConfigToGroup(groupName, groupVersion, req.Name, req.Version)
+	err = h.service.AddExistingConfigToGroup(groupName, groupVersion, req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Uspesno povezan postojeci config sa grupom!"}`))
+	w.Write([]byte(`{"message": "Uspesno povezan postojeci config sa grupom i dodeljene su mu labele!"}`))
 }
 
 func (h *ConfigGroupHandler) DeleteConfigFromGroup(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +127,67 @@ func (h *ConfigGroupHandler) DeleteConfigFromGroup(w http.ResponseWriter, r *htt
 		http.Error(w, "config ne postoji u grupi", http.StatusNotFound)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "Konfiguracija je uspesno obrisana iz grupe"}`))
+}
+
+func (h *ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	groupName := vars["name"]
+	groupVersion := vars["version"]
+
+	// query paramter after '?'
+	labelsQuery := r.URL.Query().Get("labels")
+	if labelsQuery == "" {
+		http.Error(w, "Query parametar 'labels' je obavezan", http.StatusBadRequest)
+		return
+	}
+
+	// parseLabels call
+	searchLabels, err := services.ParseLabels(labelsQuery)
+	if err != nil {
+		http.Error(w, "Greska pri parsiranju labela: "+err.Error(), http.StatusBadRequest) // 400 Bad Request
+		return
+	}
+
+	// service filter
+	configs, err := h.service.GetConfigsByLabels(groupName, groupVersion, searchLabels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(configs)
+}
+
+func (h *ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	groupName := vars["name"]
+	groupVersion := vars["version"]
+
+	labelsQuery := r.URL.Query().Get("labels")
+	if labelsQuery == "" {
+		http.Error(w, "Query parametar 'labels' je obavezan", http.StatusBadRequest)
+		return
+	}
+
+	searchLabels, err := services.ParseLabels(labelsQuery)
+	if err != nil {
+		http.Error(w, "Greska pri parsiranju labela: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.DeleteConfigsByLabels(groupName, groupVersion, searchLabels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Konfiguracije su uspesno obrisane iz grupe na osnovu zadatih labela"}`))
 }

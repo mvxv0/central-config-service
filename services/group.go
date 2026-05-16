@@ -52,31 +52,34 @@ func (s *ConfigGroupService) DeleteGroup(name string, version string) error {
 	return s.groupRepo.DeleteGroup(name, version)
 }
 
-func (s *ConfigGroupService) AddConfigToGroup(groupName string, groupVersion string, config model.Config) error {
+func (s *ConfigGroupService) AddConfigToGroup(groupName string, groupVersion string, configDTO model.ConfigDTO) error {
 	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
 	if err != nil {
 		return err
 	}
 
-	dto := model.ConfigDTO{
-		Name:   config.Name,
-		Params: config.Params,
-	}
-	group.Configs = append(group.Configs, dto)
+	group.Configs = append(group.Configs, configDTO)
 
 	err = s.groupRepo.UpdateGroup(group)
 	if err != nil {
 		return err
 	}
 
-	_ = s.configRepo.Add(config)
+	globalConfig := model.Config{
+		ID:      uuid.New().String(),
+		Name:    configDTO.Name,
+		Version: groupVersion,
+		Params:  configDTO.Params,
+	}
+
+	_ = s.configRepo.Add(globalConfig)
 	return nil
 }
 
-func (s *ConfigGroupService) AddExistingConfigToGroup(groupName string, groupVersion string, configName string, configVersion string) error {
-	existingConfig, err := s.configRepo.Get(configName, configVersion)
+func (s *ConfigGroupService) AddExistingConfigToGroup(groupName string, groupVersion string, LabelsConfigDto model.LabelsConfigDto) error {
+	globalConfig, err := s.configRepo.Get(LabelsConfigDto.Name, LabelsConfigDto.Version)
 	if err != nil {
-		return err
+		return errors.New("globalna konfiguracija ne postoji")
 	}
 
 	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
@@ -84,12 +87,13 @@ func (s *ConfigGroupService) AddExistingConfigToGroup(groupName string, groupVer
 		return err
 	}
 
-	dto := model.ConfigDTO{
-		Name:   existingConfig.Name,
-		Params: existingConfig.Params,
+	newGroupConfig := model.ConfigDTO{
+		Name:   globalConfig.Name,
+		Params: globalConfig.Params,
+		Labels: LabelsConfigDto.Labels,
 	}
-	group.Configs = append(group.Configs, dto)
 
+	group.Configs = append(group.Configs, newGroupConfig)
 	return s.groupRepo.UpdateGroup(group)
 }
 
@@ -114,5 +118,73 @@ func (s *ConfigGroupService) DeleteConfigFromGroup(groupName string, groupVersio
 	}
 
 	group.Configs = newConfigs
+	return s.groupRepo.UpdateGroup(group)
+}
+
+func (s *ConfigGroupService) GetConfigsByLabels(groupName string, groupVersion string, searchLabels map[string]string) ([]model.ConfigDTO, error) {
+	// hook group from repo
+	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	var filteredConfigs []model.ConfigDTO
+
+	// pass through all configs from group
+	for _, cfg := range group.Configs {
+		match := true
+
+		// checking if labels are matched
+		for searchKey, searchValue := range searchLabels {
+			// key ?
+			cfgValue, exists := cfg.Labels[searchKey]
+
+			// value ?
+			if !exists || cfgValue != searchValue {
+				match = false
+				break
+			}
+		}
+
+		if match {
+			filteredConfigs = append(filteredConfigs, cfg)
+		}
+	}
+
+	return filteredConfigs, nil
+}
+
+func (s *ConfigGroupService) DeleteConfigsByLabels(groupName string, groupVersion string, searchLabels map[string]string) error {
+	group, err := s.groupRepo.GetGroup(groupName, groupVersion)
+	if err != nil {
+		return err
+	}
+
+	var keptConfigs []model.ConfigDTO
+	deletedCount := 0
+
+	for _, cfg := range group.Configs {
+		match := true
+
+		for searchKey, searchValue := range searchLabels {
+			cfgValue, exists := cfg.Labels[searchKey]
+			if !exists || cfgValue != searchValue {
+				match = false
+				break
+			}
+		}
+
+		if match {
+			deletedCount++
+		} else {
+			keptConfigs = append(keptConfigs, cfg)
+		}
+	}
+
+	if deletedCount == 0 {
+		return errors.New("nijedna konfiguracija u grupi ne ispunjava uslove za brisanje")
+	}
+
+	group.Configs = keptConfigs
 	return s.groupRepo.UpdateGroup(group)
 }
