@@ -2,6 +2,7 @@ package main
 
 import (
 	"central-config-service/handlers"
+	"central-config-service/middlewares"
 	"central-config-service/repositories"
 	"central-config-service/services"
 	"context"
@@ -25,6 +26,8 @@ func main() {
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
 	router := mux.NewRouter()
+
+	router.Use(middlewares.RateLimitMiddleware)
 
 	router.HandleFunc("/configs", configHandler.Create).Methods("POST")
 	router.HandleFunc("/configs/{name}/{version}", configHandler.Delete).Methods("DELETE")
