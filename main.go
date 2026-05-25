@@ -17,11 +17,17 @@ import (
 )
 
 func main() {
-	configRepo := repositories.NewConfigInMemRepository()
+	configRepo, err := repositories.NewConfigConsulRepository()
+	if err != nil {
+		log.Fatalf("Greska pri povezivanju na Consul za konfiguracije: %v", err)
+	}
 	configService := services.NewConfigService(configRepo)
 	configHandler := handlers.NewConfigHandler(configService)
 
-	groupRepo := repositories.NewConfigGroupInMemRepository()
+	groupRepo, err := repositories.NewConfigGroupConsulRepository()
+	if err != nil {
+		log.Fatalf("Greska pri povezivanju na Consul za grupe: %v", err)
+	}
 	groupService := services.NewConfigGroupService(groupRepo, configRepo)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
